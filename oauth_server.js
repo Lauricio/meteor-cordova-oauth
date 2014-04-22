@@ -189,6 +189,6 @@ Oauth._renderOauthResults = function(res, query) {
 var closePopup = function(res) {
   res.writeHead(200, {'Content-Type': 'text/html'});
   var content =
-        '<html><head><script>window.close()</script></head></html>';
+        '<html><head><script>window.close();window.location = "closeInAppBrowser";</script></head></html>';
   res.end(content, 'utf-8');
 };

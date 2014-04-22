@@ -9,34 +9,59 @@ Oauth = {};
 // @param dimensions {optional Object(width, height)} The dimensions of
 //   the popup. If not passed defaults to something sane.
 Oauth.showPopup = function (url, callback, dimensions) {
-  // default dimensions that worked well for facebook and google
-  var popup = openCenteredPopup(
-    url,
-    (dimensions && dimensions.width) || 650,
-    (dimensions && dimensions.height) || 331
-  );
+  if (typeof device !== "undefined") {
 
-  var checkPopupOpen = setInterval(function() {
-    try {
-      // Fix for #328 - added a second test criteria (popup.closed === undefined)
-      // to humour this Android quirk:
-      // http://code.google.com/p/android/issues/detail?id=21061
-      var popupClosed = popup.closed || popup.closed === undefined;
-    } catch (e) {
-      // For some unknown reason, IE9 (and others?) sometimes (when
-      // the popup closes too quickly?) throws "SCRIPT16386: No such
-      // interface supported" when trying to read 'popup.closed'. Try
-      // again in 100ms.
-      return;
-    }
+    var popup = openIAB(url);
 
-    if (popupClosed) {
-      clearInterval(checkPopupOpen);
+    // wait for webview to complete oauth and try to login
+    popup.addEventListener('loadstop', function(event) {
+      if (event.url.match("closeInAppBrowser")) {
+        callback();
+        popup.close();
+      }
+    });
+
+    // if webview fails changing location to 'close' try to login anyway
+    popup.addEventListener('exit', function(event) {
       callback();
-    }
-  }, 100);
+    });
+
+  } else {
+
+    // default dimensions that worked well for facebook and google
+    var popup = openCenteredPopup(
+      url,
+      (dimensions && dimensions.width) || 650,
+      (dimensions && dimensions.height) || 331
+    );
+
+    var checkPopupOpen = setInterval(function() {
+      try {
+        // Fix for #328 - added a second test criteria (popup.closed === undefined)
+        // to humour this Android quirk:
+        // http://code.google.com/p/android/issues/detail?id=21061
+        var popupClosed = popup.closed || popup.closed === undefined;
+      } catch (e) {
+        // For some unknown reason, IE9 (and others?) sometimes (when
+        // the popup closes too quickly?) throws "SCRIPT16386: No such
+        // interface supported" when trying to read 'popup.closed'. Try
+        // again in 100ms.
+        return;
+      }
+
+      if (popupClosed) {
+        clearInterval(checkPopupOpen);
+        callback();
+      }
+    }, 100);
+
+  }
 };
 
+var openIAB = function(url) {
+  var newwindow = window.open(url, '_blank', 'location=yes');
+  return newwindow;
+};
 
 var openCenteredPopup = function(url, width, height) {
   var screenX = typeof window.screenX !== 'undefined'
